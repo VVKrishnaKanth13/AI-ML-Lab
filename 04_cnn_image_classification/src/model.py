@@ -85,6 +85,8 @@ class MonkeyCNN(nn.Module):
                 512 * 3 * 3,
                 256
             ),
+            nn.ReLU(),
+            nn.Dropout(p=0.3),
 
             nn.Linear(
                 256,
