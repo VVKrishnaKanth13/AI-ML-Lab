@@ -5,7 +5,7 @@ class TrainingConfig:
     batch_size: int = 32
     learning_rate: float = 1e-4
     num_epochs: int = 100
-    num_workers: int = 0
+    num_workers: int = 5
 
 IMAGE_SIZE = (224, 224)
 

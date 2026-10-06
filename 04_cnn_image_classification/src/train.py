@@ -6,163 +6,166 @@ from dataset import train_loader, val_loader
 from model import MonkeyCNN
 from config import TrainingConfig
 
+def main():
+    config = TrainingConfig()
 
-config = TrainingConfig()
+    DEVICE = torch.device(
+        "cuda" if torch.cuda.is_available() else "cpu"
+    )
 
-DEVICE = torch.device(
-    "cuda" if torch.cuda.is_available() else "cpu"
-)
-
-print("Device:", DEVICE)
-
-
-# --------------------------------------------------
-# Model
-# --------------------------------------------------
-
-model = MonkeyCNN(num_classes=10)
-model = model.to(DEVICE)
+    print("Device:", DEVICE)
 
 
-# --------------------------------------------------
-# Loss and optimizer
-# --------------------------------------------------
+    # --------------------------------------------------
+    # Model
+    # --------------------------------------------------
 
-criterion = nn.CrossEntropyLoss()
-
-optimizer = Adam(
-    model.parameters(),
-    lr=config.learning_rate
-)
+    model = MonkeyCNN(num_classes=10)
+    model = model.to(DEVICE)
 
 
-# --------------------------------------------------
-# Track best model
-# --------------------------------------------------
+    # --------------------------------------------------
+    # Loss and optimizer
+    # --------------------------------------------------
 
-best_val_accuracy = 0.0
+    criterion = nn.CrossEntropyLoss()
+
+    optimizer = Adam(
+        model.parameters(),
+        lr=config.learning_rate
+    )
 
 
-# --------------------------------------------------
-# Training
-# --------------------------------------------------
+    # --------------------------------------------------
+    # Track best model
+    # --------------------------------------------------
 
-for epoch in range(config.num_epochs):
+    best_val_accuracy = 0.0
 
-    # ==============================================
+
+    # --------------------------------------------------
     # Training
-    # ==============================================
+    # --------------------------------------------------
 
-    model.train()
+    for epoch in range(config.num_epochs):
 
-    running_train_loss = 0.0
-    train_correct = 0
-    train_total = 0
+        # ==============================================
+        # Training
+        # ==============================================
 
-    for images, labels in train_loader:
+        model.train()
 
-        images = images.to(DEVICE)
-        labels = labels.to(DEVICE)
+        running_train_loss = 0.0
+        train_correct = 0
+        train_total = 0
 
-        optimizer.zero_grad()
-
-        outputs = model(images)
-
-        loss = criterion(outputs, labels)
-
-        loss.backward()
-
-        optimizer.step()
-
-        running_train_loss += loss.item()
-
-        predictions = outputs.argmax(dim=1)
-
-        train_total += labels.size(0)
-        train_correct += (
-                predictions == labels
-        ).sum().item()
-
-    train_loss = (
-            running_train_loss / len(train_loader)
-    )
-
-    train_accuracy = (
-            100 * train_correct / train_total
-    )
-
-
-    # ==============================================
-    # Validation
-    # ==============================================
-
-    model.eval()
-
-    running_val_loss = 0.0
-    val_correct = 0
-    val_total = 0
-
-    with torch.no_grad():
-
-        for images, labels in val_loader:
+        for images, labels in train_loader:
 
             images = images.to(DEVICE)
             labels = labels.to(DEVICE)
+
+            optimizer.zero_grad()
 
             outputs = model(images)
 
             loss = criterion(outputs, labels)
 
-            running_val_loss += loss.item()
+            loss.backward()
+
+            optimizer.step()
+
+            running_train_loss += loss.item()
 
             predictions = outputs.argmax(dim=1)
 
-            val_total += labels.size(0)
-
-            val_correct += (
+            train_total += labels.size(0)
+            train_correct += (
                     predictions == labels
             ).sum().item()
 
-    val_loss = (
-            running_val_loss / len(val_loader)
-    )
-
-    val_accuracy = (
-            100 * val_correct / val_total
-    )
-
-
-    # ==============================================
-    # Save best model
-    # ==============================================
-
-    if val_accuracy > best_val_accuracy:
-
-        best_val_accuracy = val_accuracy
-
-        torch.save(
-            model.state_dict(),
-            "../models/best.pt"
+        train_loss = (
+                running_train_loss / len(train_loader)
         )
 
-        print("  ✓ Best model saved")
+        train_accuracy = (
+                100 * train_correct / train_total
+        )
 
 
-    # ==============================================
-    # Print results
-    # ==============================================
+        # ==============================================
+        # Validation
+        # ==============================================
 
+        model.eval()
+
+        running_val_loss = 0.0
+        val_correct = 0
+        val_total = 0
+
+        with torch.no_grad():
+
+            for images, labels in val_loader:
+
+                images = images.to(DEVICE)
+                labels = labels.to(DEVICE)
+
+                outputs = model(images)
+
+                loss = criterion(outputs, labels)
+
+                running_val_loss += loss.item()
+
+                predictions = outputs.argmax(dim=1)
+
+                val_total += labels.size(0)
+
+                val_correct += (
+                        predictions == labels
+                ).sum().item()
+
+        val_loss = (
+                running_val_loss / len(val_loader)
+        )
+
+        val_accuracy = (
+                100 * val_correct / val_total
+        )
+
+
+        # ==============================================
+        # Save best model
+        # ==============================================
+
+        if val_accuracy > best_val_accuracy:
+
+            best_val_accuracy = val_accuracy
+
+            torch.save(
+                model.state_dict(),
+                "../models/best.pt"
+            )
+
+            print("  ✓ Best model saved")
+
+
+        # ==============================================
+        # Print results
+        # ==============================================
+
+        print(
+            f"Epoch [{epoch + 1}/{config.num_epochs}] "
+            f"Train Loss: {train_loss:.4f} "
+            f"Train Accuracy: {train_accuracy:.2f}% "
+            f"Val Loss: {val_loss:.4f} "
+            f"Val Accuracy: {val_accuracy:.2f}%"
+        )
+
+
+    print()
     print(
-        f"Epoch [{epoch + 1}/{config.num_epochs}] "
-        f"Train Loss: {train_loss:.4f} "
-        f"Train Accuracy: {train_accuracy:.2f}% "
-        f"Val Loss: {val_loss:.4f} "
-        f"Val Accuracy: {val_accuracy:.2f}%"
+        f"Best Validation Accuracy: "
+        f"{best_val_accuracy:.2f}%"
     )
 
-
-print()
-print(
-    f"Best Validation Accuracy: "
-    f"{best_val_accuracy:.2f}%"
-)
+if __name__ == "__main__":
+    main()
